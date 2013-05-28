@@ -26,6 +26,20 @@ function setInitialConfig(proxyConfig) {
 }
 
 function processDirective(restRequest,callback) {
+    var options = restRequest.options;
+    if(!(options && options.credentials)) {
+        // An error on validate credentials returns a normal restResponse
+        return callback(null,{
+            targetType: 'RestResponse',
+            status: 'ERROR',
+            errors: [{
+                targetType:'CdmError',
+                code:'integration.login.fail.nocredentials',
+                message:"No credentials have been entered"
+            }]
+        });
+    }
+
     var typeDef = typeDefs[restRequest.targetType];
     if (!typeDef || !typeDef.baseUrl) {
         return callback(new Error("Unsupported datatype: " + restRequest.targetType));
@@ -60,10 +74,21 @@ function callJitterbit(url, restRequest, cb) {
         }
         else {
             try {
-                return cb(null, JSON.parse(result.body));
+                var reply = JSON.parse(result.body);
+                return cb(null, reply);
             }
             catch (ex) {
-                return cb(ex);
+                var errReply = 
+                    {
+                        targetType: 'RestResponse',
+                        status : "ERROR",
+                        errors: [{
+                            targetType:'CdmError',
+                            code:'integration.unexpected.response',
+                            message:"nexpected response: " + result.body
+                        }]
+                    };
+                return cb(null, errReply);
             }
         }
     });

@@ -26,6 +26,17 @@ function setInitialConfig(proxyConfig) {
 }
 
 function processDirective(restRequest,callback) {
+
+    // punt on this for now
+    if(restRequest.op === 'INVOKE' && 
+       restRequest.targetType === "CdmExternalCredentials" && 
+       restRequest.name == "validate") {
+        var restResponse = {
+            status: "SUCCESS"
+        };
+        callback(null, restResponse)
+    }
+
     var options = restRequest.options;
     if(!(options && options.credentials)) {
         // An error on validate credentials returns a normal restResponse
@@ -71,6 +82,9 @@ function callJitterbit(url, restRequest, cb) {
     http.httpRequest(httpOptions, JSON.stringify(restRequest, null, 2), function(err, result) {
         if (err) {
             return cb(err);
+        }
+        else if (result.status >= 400) {
+            cb(new Error("Error status :" + result.statusCode + ". " + result.body));
         }
         else {
             try {

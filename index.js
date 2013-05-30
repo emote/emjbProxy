@@ -15,26 +15,62 @@ var opUrls =
     "UPDATE" : "Update"
 };
 
+var loginUrl;
+
+var loginSucceededResponse = {
+    status: "SUCCESS"
+};
+
+
 emproxy.init(function afterInitCallback(initialConfig) {
     setInitialConfig(initialConfig);
     emproxy.start(processDirective);
 });
 
 function setInitialConfig(proxyConfig) {
-    typeDefs = proxyConfig.typeDefs;
+    if (proxyConfig.typeDefs) {
+        typeDefs = proxyConfig.typeDefs;
+    }
+    for (var name in typeDefs) {
+        loginUrl = typeDefs[name].baseUrl;
+        if (loginUrl.charAt(loginUrl.length-1) != '/') {
+            loginUrl += '/';
+        }
+        loginUrl += "Login";
+        break;
+    }
     console.log(proxyConfig);
 }
 
 function processDirective(restRequest,callback) {
 
-    // punt on this for now
     if(restRequest.op === 'INVOKE' && 
-       restRequest.targetType === "CdmExternalCredentials" && 
-       restRequest.name == "validate") {
-        var restResponse = {
-            status: "SUCCESS"
-        };
-        callback(null, restResponse)
+        restRequest.targetType === "CdmExternalCredentials" && 
+        restRequest.name == "validate") {
+        if (!loginUrl) {
+            return callback(null, loginSucceededResponse);
+        }
+        return callJitterbit(loginUrl, restRequest, function(err, result, statusCode) {
+            var msg;
+            var code;
+            var response;
+            if (statusCode == 401 || statusCode == 403) {
+                msg = "error logging into service";
+                code = "integration.login.fail";
+            }
+            else if (err) {
+                msg = "unable to contact service";
+                code = "integration.login.fail.cannotContact";
+            }
+
+            if (msg) {
+                response = emutils.generateCredentialsError(msg, code);
+            }
+            else {
+                response = loginSucceededResponse;
+            }
+            callback(null, response);
+        });
     }
 
     var options = restRequest.options;
@@ -84,7 +120,7 @@ function callJitterbit(url, restRequest, cb) {
             return cb(err);
         }
         else if (result.status >= 400) {
-            cb(new Error("Error status :" + result.statusCode + ". " + result.body));
+            cb(new Error("Error status :" + result.statusCode + ". " + result.body), null, result.status);
         }
         else {
             try {

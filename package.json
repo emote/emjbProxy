@@ -2,12 +2,12 @@
     "author": "Emotive generated Jitterbit proxy",
     "name": "JitterbitProxy",
     "description": "Jitterbit proxy",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "homepage": "http://www.emotive.com",
     "dependencies": {
-        "emproxy"   : "~1.0.14",
-        "emsoap"    : "~1.0.12",
-        "emutils"   : "~1.0.11"
+        "emproxy": "1.0.14",
+        "emsoap": "1.0.13",
+        "emutils": "1.0.11"
     },
     "devDependencies": {},
     "optionalDependencies": {},
